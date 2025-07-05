@@ -1,132 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AppIntroSlider from 'react-native-app-intro-slider';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const WelcomeScreen = ({ navigation }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const sliderRef = useRef(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Slide data with corrected image paths
-  const slides = [
-    {
-      key: '1',
-      title: 'Karibu DukaPay!',
-      text: 'Manage your inventory with ease, from cereals to daily essentials.',
-      // Path: src/screens/onboarding -> src/screens -> src -> root -> assets/images
-      image: require('../../../assets/images/cereals.jpg'),
-    },
-    {
-      key: '2',
-      title: 'Sell Anywhere, Anytime',
-      text: 'Process sales offline, perfect for Kenyan markets.',
-      image: require('../../../assets/images/fruitsandvegetables.jpg'),
-    },
-    {
-      key: '3',
-      title: 'Seamless M-Pesa Payments',
-      text: 'Accept M-Pesa payments instantly for your shop.',
-      image: require('../../../assets/images/shoeshop.jpg'),
-    },
-    {
-      key: '4',
-      title: 'Grow Your Business',
-      text: 'Track sales and insights for your wines & spirits or retail store.',
-      image: require('../../../assets/images/winesspirits.jpg'),
-    },
-  ];
-
-  // Auto-scroll every 5 seconds
   useEffect(() => {
-    const timer = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % slides.length;
-      setCurrentIndex(nextIndex);
-      sliderRef.current?.goToSlide(nextIndex);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [currentIndex]);
-
-  // Animation for buttons
-  const scale = useSharedValue(1);
-  const handlePressIn = () => { scale.value = 0.95; };
-  const handlePressOut = () => { scale.value = 1; };
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(scale.value) }],
-  }));
-
-  // Render each slide
-  const renderSlide = ({ item }) => (
-    <View style={styles.slide}>
-      <Image source={item.image} style={styles.image} resizeMode="cover" />
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.text}>{item.text}</Text>
-      </View>
-    </View>
-  );
-
-  // Render pagination dots
-  const renderPagination = (activeIndex) => (
-    <View style={styles.dotsContainer}>
-      {slides.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.dot,
-            activeIndex === index ? styles.activeDot : styles.inactiveDot,
-          ]}
-        />
-      ))}
-    </View>
-  );
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppIntroSlider
-        ref={sliderRef}
-        data={slides}
-        renderItem={renderSlide}
-        onSlideChange={(index) => setCurrentIndex(index)}
-        showSkipButton={false}
-        showNextButton={false}
-        showDoneButton={false}
-        renderPagination={renderPagination}
-      />
-      <View style={styles.buttonContainer}>
-        <Animated.View style={[animatedStyle]}>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => navigation.replace('Login')}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-          >
-            <Text style={styles.buttonText}>Skip</Text>
-          </TouchableOpacity>
-        </Animated.View>
-        <Animated.View style={[animatedStyle]}>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={() => {
-              const nextIndex = currentIndex + 1;
-              if (nextIndex >= slides.length) {
-                navigation.replace('Login');
-              } else {
-                setCurrentIndex(nextIndex);
-                sliderRef.current?.goToSlide(nextIndex);
-              }
-            }}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-          >
-            <Text style={styles.buttonText}>
-              {currentIndex === slides.length - 1 ? 'Get Started' : 'Next'}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+      <LinearGradient
+        colors={['#7C3AED', '#5B21B6']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        <Text style={styles.headerTitle}>Welcome to DukaPay</Text>
+        <Text style={styles.headerSubtitle}>Your Smart POS for Kenyan Businesses</Text>
+      </LinearGradient>
+      
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <Text style={styles.welcomeText}>
+          Simplify your grocery shop operations with DukaPay. Manage inventory, track sales, and accept M-Pesa payments seamlessly.
+        </Text>
+        <TouchableOpacity
+          style={styles.getStartedButton}
+          onPress={() => navigation.navigate('Landing')}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+          <Icon name="arrow-forward" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -134,81 +46,60 @@ const WelcomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
   },
-  slide: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: width,
-    height: '100%',
-    position: 'absolute',
-  },
-  textContainer: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 8,
+  header: {
     padding: 20,
-    marginHorizontal: 20,
-    alignItems: 'center',
+    paddingTop: 30,
+    paddingBottom: 25,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFF',
     textAlign: 'center',
-    marginBottom: 12,
+    fontFamily: 'sans-serif-medium',
   },
-  text: {
+  headerSubtitle: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#E9D5FF',
     textAlign: 'center',
-    lineHeight: 24,
+    marginTop: 5,
   },
-  dotsContainer: {
-    position: 'absolute',
-    bottom: 100,
-    flexDirection: 'row',
+  content: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
+  welcomeText: {
+    fontSize: 18,
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 26,
   },
-  activeDot: {
-    backgroundColor: '#7C3AED',
-    width: 12,
-    height: 12,
-  },
-  inactiveDot: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 40,
+  getStartedButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  skipButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  nextButton: {
     backgroundColor: '#7C3AED',
-    borderRadius: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 12,
+    padding: 16,
+    paddingHorizontal: 25,
+    alignItems: 'center',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginRight: 10,
   },
 });
 

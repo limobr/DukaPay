@@ -1,193 +1,200 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import RNPickerSelect from 'react-native-picker-select';
 
-export default function SignupScreen({ navigation }) {
+const SignupScreen = ({ navigation }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [shopType, setShopType] = useState(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
-  // Animation for buttons
-  const scale = useSharedValue(1);
-  const handlePressIn = () => { scale.value = 0.95; };
-  const handlePressOut = () => { scale.value = 1; };
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(scale.value) }],
-  }));
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
-  const validateInputs = () => {
-    if (!email.includes('@') || !email.includes('.')) {
-      setError('Please enter a valid email address');
-      return false;
+  const handleSignup = () => {
+    if (!name || !email || !password || !shopType) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return false;
-    }
-    setError('');
-    return true;
-  };
-
-  const handleContinue = () => {
-    if (validateInputs()) {
-      navigation.navigate('BusinessBasics', { email, password });
-    }
+    Animated.timing(buttonScale, {
+      toValue: 0.95,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
+      buttonScale.setValue(1);
+      Alert.alert('Success', 'Account created! Proceed to login.', [
+        { text: 'OK', onPress: () => navigation.navigate('Login') },
+      ]);
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.step}>Step 1 of 4</Text>
-        <Text style={styles.title}>Create Your DukaPay Account</Text>
-        <Text style={styles.tooltip}>Enter your email and password to get started.</Text>
-
+      <LinearGradient
+        colors={['#7C3AED', '#5B21B6']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        <Text style={styles.headerTitle}>Create Your DukaPay Account</Text>
+        <Text style={styles.headerSubtitle}>Join thousands of Kenyan businesses</Text>
+      </LinearGradient>
+      
+      <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
+        <Text style={styles.label}>Full Name</Text>
         <TextInput
-          style={[styles.input, error.includes('email') && styles.inputError]}
-          placeholder="Email Address"
-          keyboardType="email-address"
-          autoCapitalize="none"
+          style={styles.input}
+          placeholder="Enter your full name"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+        />
+
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
+
+        <Text style={styles.label}>Password</Text>
         <TextInput
-          style={[styles.input, error.includes('Password') && styles.inputError]}
-          placeholder="Create Password"
-          secureTextEntry
+          style={styles.input}
+          placeholder="Enter your password"
           value={password}
           onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
         />
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <Animated.View style={[animatedStyle]}>
-          <TouchableOpacity
-            style={[styles.primaryButton, (!email || password.length < 6) && styles.buttonDisabled]}
-            onPress={handleContinue}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            disabled={!email || password.length < 6}
-          >
-            <Text style={styles.primaryButtonText}>Continue</Text>
+        <Text style={styles.label}>Shop Type</Text>
+        <RNPickerSelect
+          onValueChange={(value) => setShopType(value)}
+          items={[
+            { label: 'Grocery', value: 'grocery' },
+            { label: 'Fresh Produce', value: 'fresh_produce' },
+            { label: 'Fashion Retail', value: 'fashion_retail' },
+            { label: 'Wines & Spirits', value: 'wines_spirits' },
+          ]}
+          style={pickerSelectStyles}
+          placeholder={{ label: 'Select shop type', value: null }}
+          useNativeAndroidPickerStyle={false}
+        />
+
+        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+          <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
+            <Text style={styles.buttonText}>Sign Up</Text>
+            <Icon name="arrow-forward" size={20} color="#FFF" />
           </TouchableOpacity>
         </Animated.View>
 
-        <Text style={styles.orText}>OR</Text>
-
-        <Animated.View style={[animatedStyle]}>
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-          >
-            <Icon name="google" size={20} color="#FFFFFF" />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save & Exit</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.loginLink}>Already have an account? Log In</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    padding: 16,
+    backgroundColor: '#F9FAFB',
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 24,
-    margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  header: {
+    padding: 20,
+    paddingTop: 30,
+    paddingBottom: 25,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 20,
   },
-  step: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFF',
+    textAlign: 'center',
+    fontFamily: 'sans-serif-medium',
+  },
+  headerSubtitle: {
     fontSize: 16,
-    color: '#4B5563',
+    color: '#E9D5FF',
     textAlign: 'center',
-    marginBottom: 8,
+    marginTop: 5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 8,
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  tooltip: {
+  label: {
     fontSize: 16,
-    color: '#4B5563',
-    textAlign: 'center',
-    marginBottom: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
     padding: 12,
-    borderRadius: 6,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    marginBottom: 16,
+    borderColor: '#E5E7EB',
     fontSize: 16,
+    color: '#1F2937',
   },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: '#7C3AED',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#D1D5DB',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  orText: {
-    textAlign: 'center',
-    marginVertical: 16,
-    color: '#4B5563',
-    fontSize: 14,
-  },
-  googleButton: {
-    backgroundColor: '#DB4437',
-    padding: 12,
-    borderRadius: 6,
+  signupButton: {
     flexDirection: 'row',
+    backgroundColor: '#7C3AED',
+    borderRadius: 12,
+    padding: 16,
+    paddingHorizontal: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 20,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  googleButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+  buttonText: {
+    color: '#FFF',
     fontSize: 16,
-    marginLeft: 8,
+    fontWeight: '700',
+    marginRight: 10,
   },
-  saveButton: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  saveButtonText: {
+  loginLink: {
+    fontSize: 16,
     color: '#7C3AED',
-    fontWeight: '600',
-    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
+
+const pickerSelectStyles = StyleSheet.create({
+  inputAndroid: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    fontSize: 16,
+    color: '#1F2937',
+  },
+});
+
+export default SignupScreen;

@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Dimensions, Text, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import HomeContent from './HomeContent';
+import ProductsContent from './ProductsContent';
 
 const { width } = Dimensions.get('window');
 const ICON_SIZE = 32;
@@ -9,15 +11,19 @@ const NAV_HEIGHT = 70;
 
 const DashboardScreen = () => {
   const [selectedSection, setSelectedSection] = useState('Home');
+  const translateX = useRef(new Animated.Value(0)).current;
+  const prevSectionRef = useRef('Home'); // Track previous section for direction
+  const sections = ['Home', 'Products', 'Reports', 'Settings', 'Accounts']; // Define section order
+
   const scales = {
-    Home: useRef(new Animated.Value(1.2)).current, // Home starts scaled
+    Home: useRef(new Animated.Value(1.2)).current,
     Products: useRef(new Animated.Value(1)).current,
     Reports: useRef(new Animated.Value(1)).current,
     Settings: useRef(new Animated.Value(1)).current,
     Accounts: useRef(new Animated.Value(1)).current,
   };
   const translateYs = {
-    Home: useRef(new Animated.Value(-10)).current, // Home starts raised
+    Home: useRef(new Animated.Value(-10)).current,
     Products: useRef(new Animated.Value(0)).current,
     Reports: useRef(new Animated.Value(0)).current,
     Settings: useRef(new Animated.Value(0)).current,
@@ -25,6 +31,30 @@ const DashboardScreen = () => {
   };
 
   const handlePress = (section) => {
+    const prevIndex = sections.indexOf(prevSectionRef.current);
+    const newIndex = sections.indexOf(section);
+    const direction = newIndex > prevIndex ? -width : width; // Slide left if new section is to the right, right if to the left
+
+    // Start animation
+    Animated.sequence([
+      Animated.timing(translateX, {
+        toValue: direction,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateX, {
+        toValue: -direction,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Update navbar animations
     Object.keys(scales).forEach((key) => {
       Animated.timing(scales[key], {
         toValue: key === section ? 1.2 : 1,
@@ -37,7 +67,9 @@ const DashboardScreen = () => {
         useNativeDriver: true,
       }).start();
     });
+
     setSelectedSection(section);
+    prevSectionRef.current = section; // Update previous section
   };
 
   const renderNavItem = (section, icon) => {
@@ -68,22 +100,9 @@ const DashboardScreen = () => {
   const renderContent = () => {
     switch (selectedSection) {
       case 'Home':
-        return (
-          <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Home</Text>
-            <Text style={styles.contentText}>Welcome to your DukaPay dashboard! Monitor your shop's performance here.</Text>
-          </View>
-        );
+        return <HomeContent />;
       case 'Products':
-        return (
-          <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Products</Text>
-            <Text style={styles.contentText}>Manage your inventory and product categories here.</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={() => alert('View product details (coming soon)')}>
-              <Text style={styles.actionButtonText}>View Product Details</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return <ProductsContent />;
       case 'Reports':
         return (
           <View style={styles.contentContainer}>
@@ -106,19 +125,19 @@ const DashboardScreen = () => {
           </View>
         );
       default:
-        return (
-          <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Home</Text>
-            <Text style={styles.contentText}>Welcome to your DukaPay dashboard! Monitor your shop's performance here.</Text>
-          </View>
-        );
+        return <HomeContent />;
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>DukaPay</Text>
+      </View>
       <View style={styles.content}>
-        {renderContent()}
+        <Animated.View style={[styles.contentWrapper, { transform: [{ translateX }] }]}>
+          {renderContent()}
+        </Animated.View>
       </View>
       <View style={styles.navBar}>
         {[
@@ -138,16 +157,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
+  header: {
+    backgroundColor: '#7C3AED',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: 'white',
+  },
   content: {
     flex: 1,
     width: '100%',
-    padding: 20,
+    paddingHorizontal: 0,
+    overflow: 'hidden', // Prevent content from showing outside during animation
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
   },
   contentContainer: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    paddingTop: 48,
+    paddingTop: 0,
   },
   contentTitle: {
     fontSize: 24,
@@ -159,17 +196,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4B5563',
     textAlign: 'center',
-  },
-  actionButton: {
-    backgroundColor: '#7C3AED',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 16,
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   navBar: {
     flexDirection: 'row',

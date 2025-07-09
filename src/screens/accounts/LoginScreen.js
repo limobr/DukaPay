@@ -5,13 +5,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [authenticatedUser, setAuthenticatedUser] = useState(null);
+
+  // Hardcoded users
+  const users = [
+    { email: 'admin@gmail.com', password: 'Admin', username: 'admin', role: 'admin' },
+    { email: 'user@gmail.com', password: 'User', username: 'user', role: 'employee' },
+  ];
 
   const handleLogin = () => {
-    // Mock login logic (replace with Firebase later)
-    if (email && password) {
-      navigation.replace('Dashboard');
+    // Find matching user
+    const user = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
+
+    if (user) {
+      setAuthenticatedUser({
+        email: user.email,
+        username: user.username,
+        role: user.role,
+      });
+      navigation.replace('Dashboard', {
+        userType: user.role,
+        businessType: 'restaurant',
+      });
     } else {
-      alert('Please enter email and password');
+      alert('Invalid email or password');
     }
   };
 

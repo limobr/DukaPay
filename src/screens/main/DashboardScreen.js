@@ -9,33 +9,34 @@ const { width } = Dimensions.get('window');
 const ICON_SIZE = 32;
 const NAV_HEIGHT = 70;
 
-const DashboardScreen = () => {
+const DashboardScreen = ({ route }) => {
   const [selectedSection, setSelectedSection] = useState('Home');
+  const userType = route.params?.userType || 'employee'; // Default to employee if not provided
   const translateX = useRef(new Animated.Value(0)).current;
-  const prevSectionRef = useRef('Home'); // Track previous section for direction
-  const sections = ['Home', 'Products', 'Reports', 'Settings', 'Accounts']; // Define section order
+  const prevSectionRef = useRef('Home');
 
-  const scales = {
-    Home: useRef(new Animated.Value(1.2)).current,
-    Products: useRef(new Animated.Value(1)).current,
-    Reports: useRef(new Animated.Value(1)).current,
-    Settings: useRef(new Animated.Value(1)).current,
-    Accounts: useRef(new Animated.Value(1)).current,
+  // Define role-based sections
+  const getSections = (role) => {
+    return role === 'admin'
+      ? ['Home', 'Products', 'Reports', 'Settings', 'Accounts']
+      : ['Home', 'Products'];
   };
-  const translateYs = {
-    Home: useRef(new Animated.Value(-10)).current,
-    Products: useRef(new Animated.Value(0)).current,
-    Reports: useRef(new Animated.Value(0)).current,
-    Settings: useRef(new Animated.Value(0)).current,
-    Accounts: useRef(new Animated.Value(0)).current,
-  };
+
+  const sections = getSections(userType);
+  const scales = sections.reduce((acc, section) => ({
+    ...acc,
+    [section]: useRef(new Animated.Value(section === 'Home' ? 1.2 : 1)).current,
+  }), {});
+  const translateYs = sections.reduce((acc, section) => ({
+    ...acc,
+    [section]: useRef(new Animated.Value(section === 'Home' ? -10 : 0)).current,
+  }), {});
 
   const handlePress = (section) => {
     const prevIndex = sections.indexOf(prevSectionRef.current);
     const newIndex = sections.indexOf(section);
-    const direction = newIndex > prevIndex ? -width : width; // Slide left if new section is to the right, right if to the left
+    const direction = newIndex > prevIndex ? -width : width;
 
-    // Start animation
     Animated.sequence([
       Animated.timing(translateX, {
         toValue: direction,
@@ -54,7 +55,6 @@ const DashboardScreen = () => {
       }),
     ]).start();
 
-    // Update navbar animations
     Object.keys(scales).forEach((key) => {
       Animated.timing(scales[key], {
         toValue: key === section ? 1.2 : 1,
@@ -69,7 +69,7 @@ const DashboardScreen = () => {
     });
 
     setSelectedSection(section);
-    prevSectionRef.current = section; // Update previous section
+    prevSectionRef.current = section;
   };
 
   const renderNavItem = (section, icon) => {
@@ -129,10 +129,13 @@ const DashboardScreen = () => {
     }
   };
 
+  // Capitalize userType for display (admin -> Admin, employee -> Employee)
+  const headerTitle = `${userType.charAt(0).toUpperCase() + userType.slice(1)} | DukaPay`;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>DukaPay</Text>
+        <Text style={styles.headerText}>{headerTitle}</Text>
       </View>
       <View style={styles.content}>
         <Animated.View style={[styles.contentWrapper, { transform: [{ translateX }] }]}>
@@ -146,7 +149,7 @@ const DashboardScreen = () => {
           { section: 'Reports', icon: 'bar-chart' },
           { section: 'Settings', icon: 'settings' },
           { section: 'Accounts', icon: 'account-circle' },
-        ].map(({ section, icon }) => renderNavItem(section, icon))}
+        ].filter(({ section }) => sections.includes(section)).map(({ section, icon }) => renderNavItem(section, icon))}
       </View>
     </SafeAreaView>
   );
@@ -174,7 +177,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 0,
-    overflow: 'hidden', // Prevent content from showing outside during animation
+    overflow: 'hidden',
   },
   contentWrapper: {
     flex: 1,
